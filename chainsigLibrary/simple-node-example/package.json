@@ -1,0 +1,18 @@
+{
+  "name": "chainsig-simple-example",
+  "version": "1.0.0",
+  "description": "Simple Node.js example using chainsig.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "dev": "ts-node --watch index.ts"
+  },
+  "dependencies": {
+    "chainsig.js": "^1.1.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+} 
