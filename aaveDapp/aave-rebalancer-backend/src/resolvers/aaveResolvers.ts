@@ -108,6 +108,34 @@ export const aaveResolvers = {
         logger.error('Error in manual AAVE data collection:', error);
         return false;
       }
+    },
+
+    debugEthereum: async (_: any, __: any, { logger }: GraphQLContext) => {
+      try {
+        logger.info('Debug: Testing Ethereum chain specifically');
+        
+        // Test connection
+        const connectionResults = await aaveDataService.testAllConnections();
+        logger.info('Connection results:', connectionResults);
+        
+        // Test data collection for ethereum specifically
+        const ethereumData = await aaveDataService.getAavePoolData('ethereum');
+        logger.info('Ethereum data result:', ethereumData);
+        
+        // Test data collection for base to compare
+        const baseData = await aaveDataService.getAavePoolData('base');
+        logger.info('Base data result:', baseData);
+        
+        return {
+          connections: connectionResults,
+          ethereumData: ethereumData !== null,
+          baseData: baseData !== null,
+          timestamp: new Date().toISOString()
+        };
+      } catch (error) {
+        logger.error('Error in Ethereum debug:', error);
+        throw error;
+      }
     }
   },
 

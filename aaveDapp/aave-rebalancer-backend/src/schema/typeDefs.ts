@@ -33,6 +33,9 @@ export const typeDefs = gql`
     collectVaultData: Boolean!
     calculatePerformance(date: Date!): DailyPerformance!
     
+    # Debug endpoints
+    debugEthereum: DebugResult!
+    
     # Configuration updates
     updateBaselineAllocation(allocation: BaselineAllocationInput!): Boolean!
   }
@@ -182,6 +185,14 @@ export const typeDefs = gql`
   enum SortOrder {
     ASC
     DESC
+  }
+
+  # Debug types
+  type DebugResult {
+    connections: String!
+    ethereumData: Boolean!
+    baseData: Boolean!
+    timestamp: String!
   }
 
   # Vault data types
