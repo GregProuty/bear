@@ -82,9 +82,27 @@ export const aaveResolvers = {
         const allData = await aaveDataService.getAllChainsData();
         
         // Store the collected data in database
-        // This would be implemented in a data storage service
-        logger.info(`Collected data for ${allData.length} chains`);
+        const timestamp = new Date();
+        for (const poolData of allData) {
+          await query(`
+            INSERT INTO aave_pool_data 
+            (chain_name, pool_address, total_liquidity, total_borrowed, utilization_rate, 
+             supply_apy, variable_borrow_apy, stable_borrow_apy, timestamp)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          `, [
+            poolData.chainName,
+            poolData.poolAddress,
+            poolData.totalLiquidity,
+            poolData.totalBorrowed,
+            poolData.utilizationRate,
+            poolData.supplyAPY,
+            poolData.variableBorrowAPY,
+            poolData.stableBorrowAPY,
+            timestamp
+          ]);
+        }
         
+        logger.info(`Collected and stored data for ${allData.length} AAVE pools`);
         return true;
       } catch (error) {
         logger.error('Error in manual AAVE data collection:', error);
