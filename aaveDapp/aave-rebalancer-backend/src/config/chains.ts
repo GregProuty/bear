@@ -15,7 +15,7 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     name: 'Ethereum Sepolia',
     rpcUrl: process.env.ETHEREUM_RPC_URL,
     aavePoolAddress: '0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951', // Ethereum Sepolia AAVE V3 Pool
-    usdcAddress: '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0', // Ethereum Sepolia USDC
+    usdcAddress: '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0', // Ethereum Sepolia USDT (USDC not supported on this AAVE pool)
     vaultAddress: process.env.AAVE_VAULT_ETHEREUM || undefined, // No vault deployed on Ethereum Sepolia yet
     explorerUrl: 'https://sepolia.etherscan.io',
     subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-sepolia/version/latest'
