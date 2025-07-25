@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import axios from 'axios';
 import { logger } from '../utils/logger';
-import { SUPPORTED_CHAINS, AAVE_POOL_ABI } from '../config/chains';
+import { SUPPORTED_CHAINS, AAVE_POOL_ABI, ERC20_ABI } from '../config/chains';
 
 export interface AavePoolData {
   chainName: string;
@@ -61,34 +61,68 @@ export class AaveDataService {
         return null;
       }
 
-      // Use raw provider.call() instead of Contract interface (which fails on Base Sepolia)
-      try {
-        // Use working function selector from AAVE app (0x6f90b9d1 instead of 0x35ea6a75)
-        const reserveDataCall = await provider.call({
-          to: chainConfig.aavePoolAddress,
-          data: `0x6f90b9d1000000000000000000000000${chainConfig.usdcAddress.substring(2)}`
-        });
+      // Create AAVE pool contract instance
+      const poolContract = new ethers.Contract(
+        chainConfig.aavePoolAddress,
+        AAVE_POOL_ABI,
+        provider
+      );
 
-        if (!reserveDataCall || reserveDataCall === '0x') {
-          logger.warn(`Asset ${chainConfig.usdcAddress} not supported on ${chainName}`);
-          return null;
+      try {
+        // Verify contract methods exist
+        if (!poolContract.getReserveData) {
+          throw new Error(`AAVE pool contract missing getReserveData method for ${chainName}`);
         }
 
-        logger.info(`✅ Successfully called AAVE pool for ${chainName}, response length: ${reserveDataCall.length}`);
-
-        // For now, return mock data since we confirmed the calls work
-        // TODO: Decode the actual reserve data from the raw response
-        const mockAPY = Math.random() * 5 + 1; // 1-6% APY range for demo
+        // Call getReserveData for USDC
+        const reserveData = await poolContract.getReserveData(chainConfig.usdcAddress);
         
+        logger.info(`✅ Successfully fetched AAVE reserve data for ${chainName}`);
+
+        // Extract reserve data fields
+        const currentLiquidityRate = reserveData.currentLiquidityRate;
+        const currentStableBorrowRate = reserveData.currentStableBorrowRate;
+        const currentVariableBorrowRate = reserveData.currentVariableBorrowRate;
+        const aTokenAddress = reserveData.aTokenAddress;
+
+        // Get aToken contract to fetch total supply (total liquidity)
+        const aTokenContract = new ethers.Contract(
+          aTokenAddress,
+          ERC20_ABI,
+          provider
+        );
+
+        // Verify aToken contract methods exist
+        if (!aTokenContract.totalSupply || !aTokenContract.decimals) {
+          throw new Error(`aToken contract missing required methods for ${chainName}`);
+        }
+
+        const [totalSupply, totalDecimals] = await Promise.all([
+          aTokenContract.totalSupply(),
+          aTokenContract.decimals()
+        ]);
+
+        // Format total liquidity
+        const totalLiquidity = ethers.formatUnits(totalSupply, totalDecimals);
+
+        // Calculate APY from rate (AAVE uses ray math - divide by 1e27 then convert to APY)
+        const supplyAPY = this.calculateAPY(currentLiquidityRate);
+        const variableBorrowAPY = this.calculateAPY(currentVariableBorrowRate);
+        const stableBorrowAPY = this.calculateAPY(currentStableBorrowRate);
+
+        // For utilization rate, we need total borrowed vs total liquidity
+        // For now, use a calculated estimate based on supply rate
+        const utilizationRate = Math.min(95, Math.max(0, supplyAPY * 15)); // Rough estimate
+
         return {
           chainName,
           poolAddress: chainConfig.aavePoolAddress,
-          totalLiquidity: "1000000.0", // Mock data - replace with decoded values
-          totalBorrowed: "750000.0",   // Mock data - replace with decoded values 
-          utilizationRate: 75.0,       // Mock data - replace with calculated value
-          supplyAPY: mockAPY,
-          variableBorrowAPY: mockAPY * 1.3,
-          stableBorrowAPY: mockAPY * 1.5,
+          totalLiquidity: totalLiquidity,
+          totalBorrowed: (parseFloat(totalLiquidity) * utilizationRate / 100).toString(),
+          utilizationRate: utilizationRate,
+          supplyAPY: supplyAPY,
+          variableBorrowAPY: variableBorrowAPY,
+          stableBorrowAPY: stableBorrowAPY,
           lastUpdate: new Date()
         };
 
