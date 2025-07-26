@@ -189,7 +189,8 @@ export const typeDefs = gql`
 
   # Debug types
   type DebugResult {
-    connections: String!
+    ethereumConnected: Boolean!
+    baseConnected: Boolean!
     ethereumData: Boolean!
     baseData: Boolean!
     timestamp: String!

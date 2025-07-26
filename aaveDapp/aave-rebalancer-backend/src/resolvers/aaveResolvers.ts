@@ -127,7 +127,8 @@ export const aaveResolvers = {
         logger.info('Base data result:', baseData);
         
         return {
-          connections: connectionResults,
+          ethereumConnected: connectionResults.ethereum || false,
+          baseConnected: connectionResults.base || false,
           ethereumData: ethereumData !== null,
           baseData: baseData !== null,
           timestamp: new Date().toISOString()
