@@ -48,18 +48,22 @@ export class AaveDataService {
    */
   async getAavePoolData(chainName: string): Promise<AavePoolData | null> {
     try {
+      logger.info(`🔍 Starting getAavePoolData for ${chainName}`);
+      
       const provider = this.providers.get(chainName);
       const chainConfig = SUPPORTED_CHAINS[chainName];
       
       if (!provider || !chainConfig) {
-        logger.error(`No provider or config found for chain: ${chainName}`);
+        logger.error(`❌ No provider or config found for chain: ${chainName}`);
         return null;
       }
 
       if (!chainConfig.rpcUrl) {
-        logger.warn(`No RPC URL configured for ${chainName}`);
+        logger.warn(`⚠️ No RPC URL configured for ${chainName}`);
         return null;
       }
+
+      logger.info(`✅ Provider and config found for ${chainName}, RPC: ${chainConfig.rpcUrl}`);
 
       // Create AAVE pool contract instance
       const poolContract = new ethers.Contract(
@@ -68,11 +72,15 @@ export class AaveDataService {
         provider
       );
 
+      logger.info(`✅ Created pool contract for ${chainName}`);
+
       try {
         // Verify contract methods exist
         if (!poolContract.getReserveData) {
           throw new Error(`AAVE pool contract missing getReserveData method for ${chainName}`);
         }
+
+        logger.info(`🔄 Calling getReserveData for ${chainName} with asset ${chainConfig.usdcAddress}`);
 
         // Call getReserveData for USDC
         const reserveData = await poolContract.getReserveData(chainConfig.usdcAddress);
@@ -85,6 +93,8 @@ export class AaveDataService {
         const currentVariableBorrowRate = reserveData.currentVariableBorrowRate;
         const aTokenAddress = reserveData.aTokenAddress;
 
+        logger.info(`✅ Extracted rates for ${chainName}, aToken: ${aTokenAddress}`);
+
         // Get aToken contract to fetch total supply (total liquidity)
         const aTokenContract = new ethers.Contract(
           aTokenAddress,
@@ -92,29 +102,39 @@ export class AaveDataService {
           provider
         );
 
+        logger.info(`✅ Created aToken contract for ${chainName}`);
+
         // Verify aToken contract methods exist
         if (!aTokenContract.totalSupply || !aTokenContract.decimals) {
           throw new Error(`aToken contract missing required methods for ${chainName}`);
         }
+
+        logger.info(`🔄 Fetching totalSupply and decimals for ${chainName}`);
 
         const [totalSupply, totalDecimals] = await Promise.all([
           aTokenContract.totalSupply(),
           aTokenContract.decimals()
         ]);
 
+        logger.info(`✅ Fetched aToken data for ${chainName}: supply=${totalSupply.toString()}, decimals=${totalDecimals}`);
+
         // Format total liquidity
         const totalLiquidity = ethers.formatUnits(totalSupply, totalDecimals);
+
+        logger.info(`🔄 Calculating APY for ${chainName}`);
 
         // Calculate APY from rate (AAVE uses ray math - divide by 1e27 then convert to APY)
         const supplyAPY = this.calculateAPY(currentLiquidityRate);
         const variableBorrowAPY = this.calculateAPY(currentVariableBorrowRate);
         const stableBorrowAPY = this.calculateAPY(currentStableBorrowRate);
 
+        logger.info(`✅ Calculated APY for ${chainName}: supply=${supplyAPY.toFixed(4)}%`);
+
         // For utilization rate, we need total borrowed vs total liquidity
         // For now, use a calculated estimate based on supply rate
         const utilizationRate = Math.min(95, Math.max(0, supplyAPY * 15)); // Rough estimate
 
-        return {
+        const result = {
           chainName,
           poolAddress: chainConfig.aavePoolAddress,
           totalLiquidity: totalLiquidity,
@@ -126,13 +146,16 @@ export class AaveDataService {
           lastUpdate: new Date()
         };
 
+        logger.info(`🎉 Successfully processed AAVE data for ${chainName}:`, result);
+        return result;
+
       } catch (error) {
-        logger.error(`Error fetching AAVE data for ${chainName}:`, error);
+        logger.error(`💥 Error fetching AAVE data for ${chainName}:`, error);
         return null;
       }
 
     } catch (error) {
-      logger.error(`Error in getAavePoolData for ${chainName}:`, error);
+      logger.error(`💥 Error in getAavePoolData for ${chainName}:`, error);
       return null;
     }
   }
