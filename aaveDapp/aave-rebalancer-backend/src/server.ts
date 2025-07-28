@@ -8,6 +8,7 @@ import { createContext } from './context';
 import { logger } from './utils/logger';
 import { initializeDatabase } from './database/connection';
 import { startCronJobs, runDataCollectionManually, runPerformanceCalculationManually, getCronStatus } from './cron';
+import { authenticateApiKey } from './middleware/auth';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -67,8 +68,10 @@ async function startServer() {
       };
     });
 
-    // Manual cron job trigger endpoints
-    fastify.post('/trigger/data-collection', async (request, reply) => {
+    // Manual cron job trigger endpoints (PROTECTED)
+    fastify.post('/trigger/data-collection', {
+      preHandler: authenticateApiKey
+    }, async (request, reply) => {
       try {
         logger.info('🔧 Manual data collection triggered via API');
         await runDataCollectionManually();
@@ -88,7 +91,9 @@ async function startServer() {
       }
     });
 
-    fastify.post('/trigger/performance-calculation', async (request, reply) => {
+    fastify.post('/trigger/performance-calculation', {
+      preHandler: authenticateApiKey
+    }, async (request, reply) => {
       try {
         logger.info('🔧 Manual performance calculation triggered via API');
         await runPerformanceCalculationManually();
@@ -108,8 +113,10 @@ async function startServer() {
       }
     });
 
-    // Migration endpoint to create database tables
-    fastify.post('/migrate', async () => {
+    // Migration endpoint to create database tables (PROTECTED)
+    fastify.post('/migrate', {
+      preHandler: authenticateApiKey
+    }, async () => {
       try {
         logger.info('🔧 Database migration triggered via API');
         

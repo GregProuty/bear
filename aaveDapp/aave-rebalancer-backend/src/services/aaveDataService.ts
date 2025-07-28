@@ -75,6 +75,7 @@ export class AaveDataService {
         }
 
         // Call getReserveData for USDC
+        logger.info(`🔄 Calling getReserveData for ${chainName} with ${chainConfig.usdcAddress}`);
         const reserveData = await poolContract.getReserveData(chainConfig.usdcAddress);
         
         logger.info(`✅ Successfully fetched AAVE reserve data for ${chainName}`);
