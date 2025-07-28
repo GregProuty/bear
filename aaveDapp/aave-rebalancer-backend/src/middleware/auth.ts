@@ -31,11 +31,11 @@ export const authenticateApiKey = async (request: FastifyRequest, reply: Fastify
         userAgent: request.headers['user-agent']
       });
       
-      reply.status(401).send({
+      reply.code(401).send({
         error: 'Unauthorized',
         message: 'API key required. Include X-API-Key header.'
       });
-      return; // This should stop execution
+      return reply; // Return the reply to stop execution
     }
 
     // Validate API key
@@ -47,11 +47,11 @@ export const authenticateApiKey = async (request: FastifyRequest, reply: Fastify
         userAgent: request.headers['user-agent']
       });
       
-      reply.status(401).send({
+      reply.code(401).send({
         error: 'Unauthorized',
         message: 'Invalid API key'
       });
-      return; // This should stop execution
+      return reply; // Return the reply to stop execution
     }
 
     // Success - log access and continue
@@ -66,11 +66,11 @@ export const authenticateApiKey = async (request: FastifyRequest, reply: Fastify
 
   } catch (error) {
     logger.error('Error in API key authentication:', error);
-    reply.status(500).send({
+    reply.code(500).send({
       error: 'Authentication error',
       message: 'Internal server error during authentication'
     });
-    return; // Stop execution on error
+    return reply; // Stop execution on error
   }
 };
 
