@@ -35,6 +35,7 @@ export const typeDefs = gql`
     
     # Debug endpoints
     debugEthereum: DebugResult!
+    testElasticityModel: ElasticityTestResult!
     
     # Configuration updates
     updateBaselineAllocation(allocation: BaselineAllocationInput!): Boolean!
@@ -193,6 +194,12 @@ export const typeDefs = gql`
     baseConnected: Boolean!
     ethereumData: Boolean!
     baseData: Boolean!
+    timestamp: String!
+  }
+
+  type ElasticityTestResult {
+    success: Boolean!
+    error: String
     timestamp: String!
   }
 

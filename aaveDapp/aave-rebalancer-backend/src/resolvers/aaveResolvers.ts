@@ -137,6 +137,94 @@ export const aaveResolvers = {
         logger.error('Error in Ethereum debug:', error);
         throw error;
       }
+    },
+
+    testElasticityModel: async (_: any, __: any, { logger }: GraphQLContext) => {
+      try {
+        logger.info('🧪 Testing elasticity model with sample data');
+        
+        // Import the performance service to test elasticity calculations
+        const { PerformanceService } = await import('../services/performanceService');
+        const performanceService = new (PerformanceService as any)();
+        
+        // Sample data matching the document example
+        const sampleChainData = [
+          {
+            chainName: 'ethereum',
+            supplyAPY: 6.5,
+            utilizationRate: 70,
+            totalLiquidity: '10000000' // $10M pool
+          },
+          {
+            chainName: 'base', 
+            supplyAPY: 7.8,
+            utilizationRate: 80,
+            totalLiquidity: '5000000' // $5M pool
+          }
+        ];
+
+        const sampleFundFlows: any[] = []; // No fund flows for this test
+        
+        // Test the elasticity calculations
+        logger.info('📊 Sample input data:', sampleChainData);
+        
+        // Access the private method for testing (TypeScript workaround)
+        const testInstance = performanceService as any;
+        
+        // Test APY prediction after fund movement
+        const ethPredictedAPY = testInstance.predictAPYAfterFundMovement(
+          6.5,      // current APY
+          10000000, // total liquidity
+          1000000,  // move $1M TO ethereum (should lower APY)
+          0.1       // 0.1% elasticity factor
+        );
+        
+        const basePredictedAPY = testInstance.predictAPYAfterFundMovement(
+          7.8,      // current APY
+          5000000,  // total liquidity
+          -1000000, // move $1M FROM base (should raise APY)
+          0.2       // 0.2% elasticity factor
+        );
+        
+        logger.info(`🔍 APY Predictions:`);
+        logger.info(`   Ethereum: 6.5% -> ${ethPredictedAPY.toFixed(3)}% (after +$1M)`);
+        logger.info(`   Base: 7.8% -> ${basePredictedAPY.toFixed(3)}% (after -$1M)`);
+        
+        // Test the optimal allocation calculation
+        const optimalAllocation = testInstance.calculateOptimalAllocation(
+          sampleChainData,
+          5000000, // $5M total funds
+          sampleFundFlows
+        );
+        
+        logger.info('🎯 Optimal allocation results:', optimalAllocation);
+        
+        return {
+          success: true,
+          sampleData: sampleChainData,
+          predictions: {
+            ethereum: {
+              originalAPY: 6.5,
+              predictedAPY: ethPredictedAPY,
+              movement: '+$1M'
+            },
+            base: {
+              originalAPY: 7.8,
+              predictedAPY: basePredictedAPY,
+              movement: '-$1M'
+            }
+          },
+          optimalAllocation: optimalAllocation,
+          timestamp: new Date().toISOString()
+        };
+      } catch (error) {
+        logger.error('Error in elasticity model test:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
+        };
+      }
     }
   },
 
