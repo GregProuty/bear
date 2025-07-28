@@ -7,6 +7,7 @@ export interface ChainConfig {
   vaultAddress?: string | undefined;
   explorerUrl: string;
   subgraphUrl?: string;
+  elasticityFactor: number; // Percentage change in APY per 1% change in utilization
 }
 
 export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
@@ -18,7 +19,8 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     usdcAddress: '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0', // Ethereum Sepolia USDT (USDC not supported on this AAVE pool)
     vaultAddress: process.env.AAVE_VAULT_ETHEREUM || undefined, // No vault deployed on Ethereum Sepolia yet
     explorerUrl: 'https://sepolia.etherscan.io',
-    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-sepolia/version/latest'
+    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-sepolia/version/latest',
+    elasticityFactor: 0.1 // 0.1% APY change per 1% utilization change (as per document)
   },
   base: {
     chainId: 84532, // Base Sepolia testnet chain ID
@@ -28,7 +30,8 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     usdcAddress: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Circle's official USDC on Base Sepolia testnet
     vaultAddress: '0xa189176b780Db31024038aD1C8080f62d87d5aea', // Deployed AaveVault on Base Sepolia
     explorerUrl: 'https://sepolia.basescan.org',
-    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-base/version/latest'
+    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-base/version/latest',
+    elasticityFactor: 0.2 // 0.2% APY change per 1% utilization change (as per document)
   },
   optimism: {
     chainId: 10,
@@ -38,7 +41,8 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     usdcAddress: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC on Optimism
     vaultAddress: process.env.AAVE_VAULT_OPTIMISM || undefined,
     explorerUrl: 'https://optimistic.etherscan.io',
-    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-optimism/version/latest'
+    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-optimism/version/latest',
+    elasticityFactor: 0.15 // 0.15% APY change per 1% utilization change
   },
   arbitrum: {
     chainId: 42161,
@@ -48,7 +52,8 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     usdcAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // USDC on Arbitrum  
     vaultAddress: process.env.AAVE_VAULT_ARBITRUM || undefined,
     explorerUrl: 'https://arbiscan.io',
-    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-arbitrum/version/latest'
+    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-arbitrum/version/latest',
+    elasticityFactor: 0.12 // 0.12% APY change per 1% utilization change
   },
   polygon: {
     chainId: 137,
@@ -58,7 +63,8 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     usdcAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // USDC on Polygon (bridged)
     vaultAddress: process.env.AAVE_VAULT_POLYGON || undefined,
     explorerUrl: 'https://polygonscan.com',
-    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-polygon/version/latest'
+    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-polygon/version/latest',
+    elasticityFactor: 0.18 // 0.18% APY change per 1% utilization change
   }
 };
 

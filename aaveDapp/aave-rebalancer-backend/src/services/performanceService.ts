@@ -1,6 +1,7 @@
 import { query, transaction } from '../database/connection';
 import { logger } from '../utils/logger';
 import { aaveDataService } from './aaveDataService';
+import { SUPPORTED_CHAINS } from '../config/chains';
 
 export interface DailyPerformanceData {
   id: string;
@@ -103,18 +104,35 @@ export class PerformanceService {
         previousDayTotal
       );
 
-      // Apply the new performance formula
-      const adjustedOptimizedValue = this.applyNewPerformanceFormula(
-        optimizedPerformance.totalValue,
-        fundFlows,
-        previousDayTotal
-      );
+      // Calculate fund flows impact (simplified approach matching document)
+      const totalInflows = fundFlows
+        .filter(f => f.flowType === 'deposit')
+        .reduce((sum, f) => sum + parseFloat(f.amount), 0);
+      
+      const totalOutflows = fundFlows
+        .filter(f => f.flowType === 'withdrawal')
+        .reduce((sum, f) => sum + parseFloat(f.amount), 0);
+      
+      const netFlow = totalInflows - totalOutflows;
 
-      // Calculate the differential
-      const differential = adjustedOptimizedValue - baselinePerformance.totalValue;
-      const differentialPercentage = baselinePerformance.totalValue > 0 
-        ? (differential / baselinePerformance.totalValue) * 100 
+      // Apply fund flows to both scenarios (document approach)
+      // Fund flows affect pool size, which affects total value
+      const fundFlowMultiplier = (this.TOTAL_FUND_SIZE + netFlow) / this.TOTAL_FUND_SIZE;
+      
+      const adjustedBaselineValue = baselinePerformance.totalValue * fundFlowMultiplier;
+      const adjustedOptimizedValue = optimizedPerformance.totalValue * fundFlowMultiplier;
+
+      // Calculate the differential (as per document example)
+      const differential = adjustedOptimizedValue - adjustedBaselineValue;
+      const differentialPercentage = adjustedBaselineValue > 0 
+        ? (differential / adjustedBaselineValue) * 100 
         : 0;
+
+      logger.info(`📈 Performance calculation for ${date}:`);
+      logger.info(`   Baseline: $${adjustedBaselineValue.toLocaleString()}`);
+      logger.info(`   Optimized: $${adjustedOptimizedValue.toLocaleString()}`);
+      logger.info(`   Differential: $${differential.toLocaleString()} (${differentialPercentage.toFixed(4)}%)`);
+      logger.info(`   Fund flows: +$${totalInflows.toLocaleString()} -$${totalOutflows.toLocaleString()} = $${netFlow.toLocaleString()}`);  
 
       // Prepare chain performance data
       const chainPerformanceData: ChainPerformanceData[] = [];
@@ -138,28 +156,19 @@ export class PerformanceService {
         }
       }
 
-      // Calculate fund flow totals
-      const totalInflows = fundFlows
-        .filter(f => f.flowType === 'deposit')
-        .reduce((sum, f) => sum + parseFloat(f.amount), 0);
-      
-      const totalOutflows = fundFlows
-        .filter(f => f.flowType === 'withdrawal')
-        .reduce((sum, f) => sum + parseFloat(f.amount), 0);
-      
-      const netFlow = totalInflows - totalOutflows;
+      // Fund flow totals already calculated above
 
       // Store the results
       const result = await this.storeDailyPerformance({
         date,
-        totalFundAllocationBaseline: baselinePerformance.totalValue.toString(),
+        totalFundAllocationBaseline: adjustedBaselineValue.toString(),
         totalFundAllocationOptimized: adjustedOptimizedValue.toString(),
         differential: differential.toString(),
         differentialPercentage,
         totalInflows: totalInflows.toString(),
         totalOutflows: totalOutflows.toString(),
         netFlow: netFlow.toString(),
-        previousDayTotal: previousDayTotal?.toString() || null,
+        previousDayTotal: this.TOTAL_FUND_SIZE.toString(), // Use standard fund size for consistency
         chains: chainPerformanceData
       });
 
@@ -181,44 +190,7 @@ export class PerformanceService {
     }
   }
 
-  /**
-   * Apply the new performance formula from the meeting:
-   * (Total funds today - inflows + outflows) / Previous day total fund
-   */
-  private applyNewPerformanceFormula(
-    currentTotal: number,
-    fundFlows: FundFlow[],
-    previousDayTotal: number | null
-  ): number {
-    if (!previousDayTotal || previousDayTotal === 0) {
-      logger.warn('No previous day total available, using current total');
-      return currentTotal;
-    }
-
-    const totalInflows = fundFlows
-      .filter(f => f.flowType === 'deposit')
-      .reduce((sum, f) => sum + parseFloat(f.amount), 0);
-    
-    const totalOutflows = fundFlows
-      .filter(f => f.flowType === 'withdrawal')
-      .reduce((sum, f) => sum + parseFloat(f.amount), 0);
-
-    // Apply the formula: (Total funds today - inflows + outflows) / Previous day total
-    const adjustedTotal = (currentTotal - totalInflows + totalOutflows);
-    const performanceMultiplier = adjustedTotal / previousDayTotal;
-    
-    logger.info('Applied new performance formula:', {
-      currentTotal: currentTotal.toFixed(2),
-      inflows: totalInflows.toFixed(2),
-      outflows: totalOutflows.toFixed(2),
-      previousDayTotal: previousDayTotal.toFixed(2),
-      adjustedTotal: adjustedTotal.toFixed(2),
-      performanceMultiplier: performanceMultiplier.toFixed(6)
-    });
-
-    // Return the performance-adjusted value
-    return adjustedTotal;
-  }
+  // Removed deprecated applyNewPerformanceFormula - replaced with simplified fund flow logic
 
   /**
    * Get fund flows for a specific date
@@ -309,7 +281,7 @@ export class PerformanceService {
   }
 
   /**
-   * Calculate optimized performance including fund flows
+   * Calculate optimized performance using elasticity-based allocation
    */
   private async calculateOptimizedPerformanceWithFlows(
     date: string,
@@ -318,7 +290,13 @@ export class PerformanceService {
     fundFlows: FundFlow[],
     previousDayTotal: number | null
   ) {
-    // Start with baseline allocation
+    // Calculate optimal allocation using elasticity model
+    const optimalAllocation = this.calculateOptimalAllocation(
+      utilizationData, 
+      this.TOTAL_FUND_SIZE, 
+      fundFlows
+    );
+
     let totalOptimizedValue = 0;
     const optimizedChains: Array<{
       chainName: string;
@@ -328,29 +306,29 @@ export class PerformanceService {
       totalSupply: number;
     }> = [];
 
-    for (const [chainName, baselineAmount] of Object.entries(this.BASELINE_ALLOCATION) as Array<[string, number]>) {
-      const chainData = utilizationData.find(d => d.chainName === chainName);
+    for (const chainResult of optimalAllocation) {
+      const chainData = utilizationData.find(d => d.chainName === chainResult.chainName);
       
       if (chainData) {
-        // Apply rebalancing optimization (simplified)
-        const optimizationFactor = this.calculateOptimizationFactor(chainData);
-        const optimizedAllocation = baselineAmount * optimizationFactor;
-        
-        // Calculate return for the day
-        const dailyReturn = chainData.supplyAPY / 365 / 100;
-        const chainValue = optimizedAllocation * (1 + dailyReturn);
+        // Calculate daily return using predicted APY
+        const dailyReturn = chainResult.predictedAPY / 365 / 100;
+        const chainValue = chainResult.allocation * (1 + dailyReturn);
         
         totalOptimizedValue += chainValue;
         
         optimizedChains.push({
-          chainName,
-          allocation: optimizedAllocation,
-          apy: chainData.supplyAPY,
+          chainName: chainResult.chainName,
+          allocation: chainResult.allocation,
+          apy: chainResult.predictedAPY,
           utilizationRatio: chainData.utilizationRate,
           totalSupply: parseFloat(chainData.totalLiquidity || '0')
         });
+
+        logger.info(`📊 Optimized ${chainResult.chainName}: $${chainResult.allocation.toLocaleString()} @ ${chainResult.predictedAPY.toFixed(3)}% APY`);
       }
     }
+
+    logger.info(`💰 Total optimized value: $${totalOptimizedValue.toLocaleString()}`);
 
     return {
       totalValue: totalOptimizedValue,
@@ -402,7 +380,147 @@ export class PerformanceService {
   }
 
   /**
+   * Calculate optimized allocation using elasticity-based model
+   * This implements the optimization algorithm described in the document
+   */
+  private calculateOptimalAllocation(
+    chainData: any[], 
+    totalFunds: number, 
+    fundFlows: FundFlow[]
+  ): { chainName: string; allocation: number; predictedAPY: number }[] {
+    logger.info('🧮 Calculating optimal allocation using elasticity model');
+    
+    // Start with baseline allocation
+    const allocations: Record<string, number> = { ...this.BASELINE_ALLOCATION };
+    
+    // Apply fund flows to total available funds
+    const netInflows = fundFlows
+      .filter(f => f.flowType === 'deposit')
+      .reduce((sum, f) => sum + parseFloat(f.amount), 0);
+    const netOutflows = fundFlows
+      .filter(f => f.flowType === 'withdrawal')
+      .reduce((sum, f) => sum + parseFloat(f.amount), 0);
+    
+    const availableFunds = totalFunds + netInflows - netOutflows;
+    
+        // Calculate current utilization and APY for each chain
+    const chainMetrics = chainData.map(chain => {
+      const config = SUPPORTED_CHAINS[chain.chainName];
+      if (!config) {
+        logger.warn(`No configuration found for chain: ${chain.chainName}`);
+        return null;
+      }
+      return {
+        chainName: chain.chainName,
+        currentAPY: chain.supplyAPY,
+        currentUtilization: chain.utilizationRate,
+        totalLiquidity: parseFloat(chain.totalLiquidity || '0'),
+        elasticityFactor: config.elasticityFactor,
+        currentAllocation: allocations[chain.chainName] || 0
+      };
+    }).filter((chain): chain is NonNullable<typeof chain> => chain !== null);
+
+    // Iterative optimization to find best allocation
+    let improved = true;
+    let iterations = 0;
+    const maxIterations = 10;
+
+    while (improved && iterations < maxIterations) {
+      improved = false;
+      iterations++;
+      
+      logger.info(`Optimization iteration ${iterations}`);
+
+      // Try moving $100k between each pair of chains
+      const moveAmount = 100000;
+      
+             for (let i = 0; i < chainMetrics.length; i++) {
+         for (let j = 0; j < chainMetrics.length; j++) {
+           const fromChain = chainMetrics[i];
+           const toChain = chainMetrics[j];
+           
+           if (!fromChain || !toChain || i === j || fromChain.currentAllocation < moveAmount) continue;
+
+          // Calculate predicted APYs after moving funds
+          const fromNewAPY = this.predictAPYAfterFundMovement(
+            fromChain.currentAPY,
+            fromChain.totalLiquidity,
+            -moveAmount, // removing funds
+            fromChain.elasticityFactor
+          );
+
+          const toNewAPY = this.predictAPYAfterFundMovement(
+            toChain.currentAPY,
+            toChain.totalLiquidity,
+            moveAmount, // adding funds
+            toChain.elasticityFactor
+          );
+
+          // Calculate current vs potential returns
+          const currentReturn = 
+            (fromChain.currentAllocation * fromChain.currentAPY / 100) +
+            (toChain.currentAllocation * toChain.currentAPY / 100);
+
+          const newFromAllocation = fromChain.currentAllocation - moveAmount;
+          const newToAllocation = toChain.currentAllocation + moveAmount;
+          
+          const potentialReturn = 
+            (newFromAllocation * fromNewAPY / 100) +
+            (newToAllocation * toNewAPY / 100);
+
+          // If this move improves returns, make it
+          if (potentialReturn > currentReturn + 1) { // $1 minimum improvement threshold
+            logger.info(`💰 Moving $${moveAmount} from ${fromChain.chainName} to ${toChain.chainName}`);
+            logger.info(`Expected return improvement: $${(potentialReturn - currentReturn).toFixed(2)}`);
+            
+            fromChain.currentAllocation = newFromAllocation;
+            toChain.currentAllocation = newToAllocation;
+            fromChain.currentAPY = fromNewAPY;
+            toChain.currentAPY = toNewAPY;
+            
+            improved = true;
+          }
+        }
+      }
+    }
+
+    logger.info(`✅ Optimization completed after ${iterations} iterations`);
+
+    return chainMetrics.map(chain => ({
+      chainName: chain.chainName,
+      allocation: chain.currentAllocation,
+      predictedAPY: chain.currentAPY
+    }));
+  }
+
+  /**
+   * Predict APY after fund movement using elasticity model
+   * Formula: newAPY = currentAPY + (utilizationChange * elasticityFactor)
+   */
+  private predictAPYAfterFundMovement(
+    currentAPY: number,
+    totalLiquidity: number,
+    fundMovement: number,
+    elasticityFactor: number
+  ): number {
+    if (totalLiquidity === 0) return currentAPY;
+
+    // Calculate utilization change as percentage
+    const utilizationChange = (fundMovement / totalLiquidity) * 100;
+    
+    // Apply elasticity model: APY change = utilization change * elasticity factor
+    const apyChange = utilizationChange * elasticityFactor;
+    
+    const newAPY = Math.max(0, currentAPY + apyChange);
+    
+    logger.debug(`APY prediction: ${currentAPY.toFixed(3)}% -> ${newAPY.toFixed(3)}% (movement: $${fundMovement}, elasticity: ${elasticityFactor})`);
+    
+    return newAPY;
+  }
+
+  /**
    * Calculate optimization factor based on chain performance
+   * DEPRECATED: Replaced with proper elasticity-based optimization
    */
   private calculateOptimizationFactor(chainData: any): number {
     // Simplified optimization: prefer chains with higher APY and good utilization
