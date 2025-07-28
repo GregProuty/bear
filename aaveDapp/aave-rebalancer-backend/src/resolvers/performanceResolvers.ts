@@ -1,9 +1,15 @@
 import { performanceService } from '../services/performanceService';
 import { GraphQLContext } from '../context';
+import { validateGraphQLInput, validateAdminMutation } from '../middleware/validation';
+import { 
+  PerformanceDataSchema, 
+  HistoricalPerformanceSchema, 
+  CalculatePerformanceSchema 
+} from '../validation/schemas';
 
 export const performanceResolvers = {
   Query: {
-    performanceData: async (
+    performanceData: validateGraphQLInput(PerformanceDataSchema)(async (
       _: any,
       { startDate, endDate }: { startDate: string; endDate: string },
       { logger }: GraphQLContext
@@ -15,7 +21,7 @@ export const performanceResolvers = {
         logger.error('Error fetching performance data:', error);
         throw error;
       }
-    },
+    }),
 
     performanceMetrics: async (_: any, __: any, { logger }: GraphQLContext) => {
       try {
@@ -27,7 +33,7 @@ export const performanceResolvers = {
       }
     },
 
-    historicalPerformance: async (
+    historicalPerformance: validateGraphQLInput(HistoricalPerformanceSchema)(async (
       _: any,
       { days = 30 }: { days?: number },
       { logger }: GraphQLContext
@@ -43,9 +49,9 @@ export const performanceResolvers = {
         logger.error('Error fetching historical performance:', error);
         throw error;
       }
-    },
+    }),
 
-    performanceSummary: async (
+    performanceSummary: validateGraphQLInput(PerformanceDataSchema)(async (
       _: any,
       { startDate, endDate }: { startDate: string; endDate: string },
       { logger }: GraphQLContext
@@ -108,11 +114,11 @@ export const performanceResolvers = {
         logger.error('Error generating performance summary:', error);
         throw error;
       }
-    }
+    })
   },
 
   Mutation: {
-    calculatePerformance: async (
+    calculatePerformance: validateAdminMutation(CalculatePerformanceSchema)(async (
       _: any,
       { date }: { date: string },
       { logger }: GraphQLContext
@@ -130,7 +136,7 @@ export const performanceResolvers = {
         logger.error('Error in manual performance calculation:', error);
         throw error;
       }
-    }
+    })
   },
 
   Subscription: {

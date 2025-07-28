@@ -1,10 +1,12 @@
 import { aaveDataService } from '../services/aaveDataService';
 import { query } from '../database/connection';
 import { GraphQLContext } from '../context';
+import { validateGraphQLInput, validateAdminMutation } from '../middleware/validation';
+import { AavePoolDataSchema } from '../validation/schemas';
 
 export const aaveResolvers = {
   Query: {
-    aavePoolData: async (
+    aavePoolData: validateGraphQLInput(AavePoolDataSchema)(async (
       _: any,
       { chainName }: { chainName: string },
       { logger }: GraphQLContext
@@ -51,7 +53,7 @@ export const aaveResolvers = {
         logger.error(`Error fetching AAVE pool data for ${chainName}:`, error);
         throw error;
       }
-    },
+    }),
 
     allChainData: async (_: any, __: any, { logger }: GraphQLContext) => {
       try {

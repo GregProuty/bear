@@ -9,12 +9,18 @@ import { logger } from './utils/logger';
 import { initializeDatabase } from './database/connection';
 import { startCronJobs, runDataCollectionManually, runPerformanceCalculationManually, getCronStatus } from './cron';
 import { authenticateApiKey } from './middleware/auth';
+import { validateAdminEndpoint, validateEnvironment } from './middleware/validation';
+import { EnvSchema, TriggerEndpointSchema } from './validation/schemas';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 async function startServer() {
   try {
+    // Validate environment variables on startup
+    const env = validateEnvironment(EnvSchema);
+    logger.info('Environment variables validated successfully');
+    
     // Initialize database connection
     await initializeDatabase();
     logger.info('Database connection established');
@@ -70,7 +76,7 @@ async function startServer() {
 
     // Manual cron job trigger endpoints (PROTECTED)
     fastify.post('/trigger/data-collection', {
-      preHandler: authenticateApiKey
+      preHandler: validateAdminEndpoint(TriggerEndpointSchema, 'body')
     }, async (request, reply) => {
       try {
         logger.info('🔧 Manual data collection triggered via API');
@@ -92,7 +98,7 @@ async function startServer() {
     });
 
     fastify.post('/trigger/performance-calculation', {
-      preHandler: authenticateApiKey
+      preHandler: validateAdminEndpoint(TriggerEndpointSchema, 'body')
     }, async (request, reply) => {
       try {
         logger.info('🔧 Manual performance calculation triggered via API');
