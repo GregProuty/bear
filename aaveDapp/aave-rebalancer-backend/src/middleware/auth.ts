@@ -5,6 +5,14 @@ import { logger } from '../utils/logger';
  * API Key authentication middleware for admin endpoints
  */
 export const authenticateApiKey = async (request: FastifyRequest, reply: FastifyReply) => {
+  // Debug: Log that middleware is being called
+  logger.info('🔒 Authentication middleware called', { 
+    url: request.url, 
+    method: request.method,
+    hasApiKey: !!request.headers['x-api-key'],
+    hasAdminKey: !!process.env.ADMIN_API_KEY
+  });
+  
   try {
     const apiKey = request.headers['x-api-key'] as string;
     const adminApiKey = process.env.ADMIN_API_KEY;
@@ -12,11 +20,7 @@ export const authenticateApiKey = async (request: FastifyRequest, reply: Fastify
     // Check if API key is configured
     if (!adminApiKey) {
       logger.error('ADMIN_API_KEY not configured in environment variables');
-      reply.status(500).send({
-        error: 'Server configuration error',
-        message: 'Authentication system not properly configured'
-      });
-      return;
+      throw new Error('Authentication system not properly configured');
     }
 
     // Check if API key is provided
@@ -31,7 +35,7 @@ export const authenticateApiKey = async (request: FastifyRequest, reply: Fastify
         error: 'Unauthorized',
         message: 'API key required. Include X-API-Key header.'
       });
-      return;
+      return; // This should stop execution
     }
 
     // Validate API key
@@ -47,15 +51,18 @@ export const authenticateApiKey = async (request: FastifyRequest, reply: Fastify
         error: 'Unauthorized',
         message: 'Invalid API key'
       });
-      return;
+      return; // This should stop execution
     }
 
-    // Success - log access
+    // Success - log access and continue
     logger.info('Admin endpoint access authorized', {
       ip: request.ip,
       url: request.url,
       userAgent: request.headers['user-agent']
     });
+    
+    // Explicitly continue to the handler
+    return;
 
   } catch (error) {
     logger.error('Error in API key authentication:', error);
@@ -63,6 +70,7 @@ export const authenticateApiKey = async (request: FastifyRequest, reply: Fastify
       error: 'Authentication error',
       message: 'Internal server error during authentication'
     });
+    return; // Stop execution on error
   }
 };
 
