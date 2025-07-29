@@ -65,6 +65,28 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     explorerUrl: 'https://polygonscan.com',
     subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-polygon/version/latest',
     elasticityFactor: 0.18 // 0.18% APY change per 1% utilization change
+  },
+  arbitrumSepolia: {
+    chainId: 421614, // Arbitrum Sepolia testnet chain ID
+    name: 'Arbitrum Sepolia',
+    rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL,
+    aavePoolAddress: '0x6ae43d3271ff6888e7fc43fd7321a503ff738951', // TODO: Update with real AAVE V3 pool address for Arbitrum Sepolia
+    usdcAddress: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', // Circle's official USDC on Arbitrum Sepolia testnet
+    vaultAddress: process.env.AAVE_VAULT_ARBITRUM_SEPOLIA || undefined, // No vault deployed yet
+    explorerUrl: 'https://sepolia.arbiscan.io',
+    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-arbitrum-sepolia/version/latest', // TODO: Update with real subgraph URL
+    elasticityFactor: 0.12 // Similar to Arbitrum mainnet
+  },
+  optimismSepolia: {
+    chainId: 11155420, // Optimism Sepolia testnet chain ID
+    name: 'Optimism Sepolia',
+    rpcUrl: process.env.OPTIMISM_SEPOLIA_RPC_URL,
+    aavePoolAddress: '0x6ae43d3271ff6888e7fc43fd7321a503ff738951', // TODO: Update with real AAVE V3 pool address for Optimism Sepolia
+    usdcAddress: '0x5fd84259d66Cd46123540766Be93DFE6D43130D7', // Circle's official USDC on Optimism Sepolia testnet
+    vaultAddress: process.env.AAVE_VAULT_OPTIMISM_SEPOLIA || undefined, // No vault deployed yet
+    explorerUrl: 'https://sepolia-optimism.etherscan.io',
+    subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-optimism-sepolia/version/latest', // TODO: Update with real subgraph URL
+    elasticityFactor: 0.15 // Similar to Optimism mainnet
   }
 };
 

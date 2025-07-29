@@ -6,8 +6,8 @@ const DateString = z.string().refine(
   { message: 'Invalid date format. Use YYYY-MM-DD or ISO format' }
 );
 
-const ChainName = z.enum(['ethereum', 'base', 'optimism', 'arbitrum', 'polygon'], {
-  errorMap: () => ({ message: 'Invalid chain name. Must be one of: ethereum, base, optimism, arbitrum, polygon' })
+const ChainName = z.enum(['ethereum', 'base', 'optimism', 'arbitrum', 'polygon', 'arbitrumSepolia', 'optimismSepolia'], {
+  errorMap: () => ({ message: 'Invalid chain name. Must be one of: ethereum, base, optimism, arbitrum, polygon, arbitrumSepolia, optimismSepolia' })
 });
 
 const PositiveNumber = z.number().positive('Must be a positive number');
@@ -148,7 +148,9 @@ export const EnvSchema = z.object({
   BASE_RPC_URL: z.string().url('Invalid Base RPC URL').optional(),
   OPTIMISM_RPC_URL: z.string().url('Invalid Optimism RPC URL').optional(),
   ARBITRUM_RPC_URL: z.string().url('Invalid Arbitrum RPC URL').optional(),
-  POLYGON_RPC_URL: z.string().url('Invalid Polygon RPC URL').optional()
+  POLYGON_RPC_URL: z.string().url('Invalid Polygon RPC URL').optional(),
+  ARBITRUM_SEPOLIA_RPC_URL: z.string().url('Invalid Arbitrum Sepolia RPC URL').optional(),
+  OPTIMISM_SEPOLIA_RPC_URL: z.string().url('Invalid Optimism Sepolia RPC URL').optional()
 });
 
 // Type exports for TypeScript

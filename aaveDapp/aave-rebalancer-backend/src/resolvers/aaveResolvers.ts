@@ -3,6 +3,7 @@ import { query } from '../database/connection';
 import { GraphQLContext } from '../context';
 import { validateGraphQLInput, validateAdminMutation } from '../middleware/validation';
 import { AavePoolDataSchema } from '../validation/schemas';
+import { SUPPORTED_CHAINS } from '../config/chains';
 
 export const aaveResolvers = {
   Query: {
@@ -282,26 +283,11 @@ export const aaveResolvers = {
 
 // Helper functions
 function getChainId(chainName: string): number {
-  const chainIds: Record<string, number> = {
-    ethereum: 1,
-    base: 8453,
-    optimism: 10,
-    arbitrum: 42161,
-    polygon: 137
-  };
-  return chainIds[chainName.toLowerCase()] || 0;
+  const chainConfig = SUPPORTED_CHAINS[chainName.toLowerCase()];
+  return chainConfig ? chainConfig.chainId : 0;
 }
 
 function getVaultAddress(chainName: string): string | undefined {
-  // These would come from environment variables or config
-  const vaultAddresses: Record<string, string> = {
-    ethereum: process.env.AAVE_VAULT_ETHEREUM || '',
-    base: process.env.AAVE_VAULT_BASE || '',
-    optimism: process.env.AAVE_VAULT_OPTIMISM || '',
-    arbitrum: process.env.AAVE_VAULT_ARBITRUM || '',
-    polygon: process.env.AAVE_VAULT_POLYGON || ''
-  };
-  
-  const address = vaultAddresses[chainName.toLowerCase()];
-  return address || undefined;
+  const chainConfig = SUPPORTED_CHAINS[chainName.toLowerCase()];
+  return chainConfig ? chainConfig.vaultAddress : undefined;
 } 
