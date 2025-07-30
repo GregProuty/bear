@@ -27,8 +27,8 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     name: 'Base Sepolia',
     rpcUrl: process.env.BASE_RPC_URL,
     aavePoolAddress: '0x6a9d64f93db660eacb2b6e9424792c630cda87d8', // Official Base Sepolia AAVE Pool from app
-    usdcAddress: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Circle's official USDC on Base Sepolia testnet
-    vaultAddress: '0xa189176b780Db31024038aD1C8080f62d87d5aea', // Deployed AaveVault on Base Sepolia
+    usdcAddress: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', // Circle's official USDC (updated from coworker)
+    vaultAddress: '0x858a8afff11bfccb61e69da87eba1ecccc34c640', // AaveVault on Base Sepolia (redeployed with Circle USDC)
     explorerUrl: 'https://sepolia.basescan.org',
     subgraphUrl: 'https://api.studio.thegraph.com/query/24660/aave-v3-base/version/latest',
     elasticityFactor: 0.2 // 0.2% APY change per 1% utilization change (as per document)
