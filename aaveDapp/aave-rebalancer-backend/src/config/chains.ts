@@ -70,7 +70,7 @@ export const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     chainId: 421614, // Arbitrum Sepolia testnet chain ID
     name: 'Arbitrum Sepolia',
     rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc',
-    aavePoolAddress: '0x794a61358D6845594F94dc1DB02A252b5b4814aD', // Arbitrum Sepolia AAVE V3 Pool
+    aavePoolAddress: '0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2', // Correct Arbitrum Sepolia AAVE V3 Pool
     usdcAddress: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', // Circle's official USDC on Arbitrum Sepolia testnet
     vaultAddress: '0x858a8afff11bfccb61e69da87eba1ecccc34c640', // AaveVault deployed by coworker
     explorerUrl: 'https://sepolia.arbiscan.io',

@@ -233,6 +233,34 @@ async function migrate() {
       $$ LANGUAGE plpgsql;
     `);
     
+    // Add testnet chains to enum (if not already present)
+    logger.info('🔧 Adding testnet chains to enum...');
+    const testnetChains = ['arbitrumSepolia', 'optimismSepolia', 'baseSepolia', 'ethereumSepolia'];
+    
+    for (const chain of testnetChains) {
+      try {
+        await query(`ALTER TYPE chain_name_enum ADD VALUE IF NOT EXISTS '${chain}';`);
+        logger.info(`✅ Added enum value: ${chain}`);
+      } catch (error) {
+        if (error.message?.includes('already exists')) {
+          logger.info(`ℹ️  Enum value already exists: ${chain}`);
+        } else {
+          logger.warn(`⚠️  Could not add enum value ${chain}:`, error.message);
+        }
+      }
+    }
+    
+    // Update baseline configuration to include testnet chains
+    await query(`
+      INSERT INTO baseline_configuration (chain_name, initial_allocation, percentage_allocation, effective_from) 
+      VALUES
+        ('arbitrumSepolia', 0.00, 0.00, CURRENT_DATE),
+        ('optimismSepolia', 0.00, 0.00, CURRENT_DATE),
+        ('baseSepolia', 0.00, 0.00, CURRENT_DATE),
+        ('ethereumSepolia', 0.00, 0.00, CURRENT_DATE)
+      ON CONFLICT (chain_name, effective_to) DO NOTHING;
+    `);
+    
     // Views will be recreated after schema migration if needed
     
     logger.info('✅ Database migration completed successfully');
