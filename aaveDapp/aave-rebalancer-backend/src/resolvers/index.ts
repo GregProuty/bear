@@ -2,6 +2,7 @@ import { performanceResolvers } from './performanceResolvers';
 import { aaveResolvers } from './aaveResolvers';
 import { allocationResolvers } from './allocationResolvers';
 import { vaultResolvers } from './vaultResolvers';
+import { activityResolvers } from './activityResolvers';
 import { DateTimeResolver, DateResolver } from 'graphql-scalars';
 
 // Custom scalar for Decimal type
@@ -23,6 +24,7 @@ export const resolvers = {
     ...aaveResolvers.Query,
     ...allocationResolvers.Query,
     ...vaultResolvers.Query,
+    ...activityResolvers.Query,
   },
 
   // Mutation resolvers

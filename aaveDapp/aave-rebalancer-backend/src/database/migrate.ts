@@ -242,10 +242,10 @@ async function migrate() {
         await query(`ALTER TYPE chain_name_enum ADD VALUE IF NOT EXISTS '${chain}';`);
         logger.info(`✅ Added enum value: ${chain}`);
       } catch (error) {
-        if (error.message?.includes('already exists')) {
+        if (error instanceof Error && error.message?.includes('already exists')) {
           logger.info(`ℹ️  Enum value already exists: ${chain}`);
         } else {
-          logger.warn(`⚠️  Could not add enum value ${chain}:`, error.message);
+          logger.warn(`⚠️  Could not add enum value ${chain}:`, error instanceof Error ? error.message : String(error));
         }
       }
     }

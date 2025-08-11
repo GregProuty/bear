@@ -16,6 +16,11 @@ export const typeDefs = gql`
     historicalPerformance(days: Int = 30): [DailyPerformance!]!
     performanceSummary(startDate: Date!, endDate: Date!): PerformanceSummary!
     
+    # Activity feed queries
+    recentActivity(limit: Int = 20): [ActivityEntry!]!
+    fundFlows(days: Int = 7): [FundFlow!]!
+    rebalancingHistory(days: Int = 7): [RebalancingEvent!]!
+    
     # AAVE data queries
     aavePoolData(chainName: String!): AavePoolData
     allChainData: [ChainData!]!
@@ -226,5 +231,57 @@ export const typeDefs = gql`
     minSharePrice: Float!
     maxSharePrice: Float!
     dataPoints: Int!
+  }
+
+  # Activity feed types
+  type ActivityEntry {
+    id: ID!
+    type: ActivityType!
+    title: String!
+    description: String!
+    amount: Decimal
+    chainName: String
+    userAddress: String
+    transactionHash: String
+    timestamp: DateTime!
+    icon: String!
+  }
+
+  type FundFlow {
+    id: ID!
+    date: Date!
+    chainName: String!
+    flowType: FlowType!
+    amount: Decimal!
+    userAddress: String
+    transactionHash: String
+    blockNumber: Int
+    timestamp: DateTime!
+  }
+
+  type RebalancingEvent {
+    id: ID!
+    date: Date!
+    fromChain: String!
+    toChain: String!
+    amount: Decimal!
+    reason: String
+    predictedGain: Decimal
+    actualGain: Decimal
+    timestamp: DateTime!
+    transactionHash: String
+  }
+
+  enum ActivityType {
+    DEPOSIT
+    WITHDRAWAL
+    REBALANCE
+    HARVEST
+    ALLOCATION
+  }
+
+  enum FlowType {
+    DEPOSIT
+    WITHDRAWAL
   }
 `; 
