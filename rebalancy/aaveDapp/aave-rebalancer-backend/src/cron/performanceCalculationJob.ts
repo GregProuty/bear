@@ -24,7 +24,10 @@ export async function performanceCalculationJob(): Promise<void> {
 
     const duration = Date.now() - startTime;
     const differential = parseFloat(performanceData.differential);
-    const differentialPct = performanceData.differentialPercentage || 0;
+    // Parse decimal to number (PostgreSQL returns DECIMAL as string)
+    const differentialPct = typeof performanceData.differentialPercentage === 'number' 
+      ? performanceData.differentialPercentage 
+      : parseFloat(String(performanceData.differentialPercentage)) || 0;
     
     logger.info(`✅ Performance calculation completed in ${duration}ms`);
     logger.info(`📊 Daily differential: $${differential.toFixed(2)} (${differentialPct.toFixed(4)}%)`);
